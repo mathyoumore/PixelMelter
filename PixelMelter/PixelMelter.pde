@@ -27,19 +27,18 @@ int fX = 0, fY = 0; //Final coords for selection draw
 boolean selecting = false;
 boolean drawing = false;
 
+int iterations = 0;
 void setup()
 {
-  src = loadImage("Smelleph.png");
+  src = loadImage("Eleph.jpg");
   src.loadPixels();
 
-
-
   int sw = src.width;
-  int sh = 838; //Should change with mode
+  int sh = 3000; //Should change with mode
 
   out = createGraphics(sw, sh);
 
-  size(sw, sh);
+  size(src.width,sh);
 
   rectMode(CORNERS);
 }
@@ -51,76 +50,99 @@ void draw()
 {
   background(100);
   image (src, 0, 0);
-  /*if (selecting && !drawing)
-   {
-   fX = mouseX;
-   fY = mouseY;
-   noFill();
-   stroke(255,0,0);
-   rect(iX, iY, fX, fY);
-   }*/
+  if (selecting && !drawing)
+  {
+    image (src, 0, 0);
+    fX = mouseX;
+    fY = mouseY;
+    noFill();
+    stroke(255, 0, 0);
+    rect(iX, iY, fX, fY);
+  }
   noFill();
   stroke(255, 0, 0);
   //THIS IS HARD CODED AND UGLY vvv
-  int t = 180;
-  int b = 538;
-  rect(0, 180, 538, 263);
-
-  float meltedRegion = (height-263);
-  int divisions = floor(meltedRegion / (263-180));  
-  println(divisions);
-  //THIS IS HARD CODED AND UGLY ^^^
-
-  int currentRegion = t;
-  out.beginDraw();
-  color[] c = new color[src.width];
-  int row = 0;
-  int index = 0;
-  int yPlace = 0;
-  while (row < src.height && yPlace < height)
+  if (drawing)
   {
-    //Runs always if out of the section to melt
-    //Runs in the section iff entering a new pixel division
-    println("yPlace: " + yPlace + ", currentRegion: " + currentRegion + ", " + row);
-    if (row < t || row >= b) 
+    int t = iY;
+    int b = fY;
+    if (iY > fY)
     {
-      while (index < src.width)
-      {
-        c[index] = src.pixels[index+(row*src.width)];
-        index++;
-      }
-      row++;
-      if (row > b)
-      {
-       println("I'm finishing."); 
-      }
+      t = fY;
+      b = iY;
     }
-    else if(yPlace == currentRegion && currentRegion < b)
-    {
-      println("THIS IS HAPPENING *******************");
-      while (index < src.width)
-      {
-        c[index] = src.pixels[index+(row*src.width)];
-        index++;
-      }
-      currentRegion += divisions;
-      row++;
-    }
-    index = 0;
-    while (index < src.width)
-    {
-      out.set(index, yPlace+src.height, c[index]);
-      //println("Placing " + red(c[index]) + ", " + green(c[index]) + ", " + blue(c[index]) + " at " + index + ", " + (row+src.height)); 
-      index++;
-    }
-    yPlace++;
+    //    rect(0, 180, 538, 263);
+
+    float meltedRegion = height-t-(b-t);
+    int divisions = floor(meltedRegion /(b-t));  
+    println(divisions);
+    //THIS IS HARD CODED AND UGLY ^^^
+
+    int currentRegion = t;
+    out.beginDraw();
+    color[] c = new color[src.width];
+    int row = 0;
+    int index = 0;
+    int yPlace = 0;
     
-    index = 0;    
-    println("Running " + millis() + ": " + yPlace);
+    //
+    int melteds = 0;
+    //
+    //    while (row < src.height && yPlace < height)
+    while (row < src.height && yPlace < height)
+    {
+      println("Still running, " + row + " < " + src.height + " and (" + t + " < " + row + " < " + b + ")");
+      println("yPlace: " + yPlace + " < " + height);
+      //println("yPlace: " + yPlace + ", currentRegion: " + currentRegion + ", " + row);
+      if (row < t || row >= b) 
+      {
+        while (index < src.width)
+        {
+          c[index] = src.pixels[index+(row*src.width)];
+          index++;
+        }
+        row++;
+//        if (row > b)
+//        {
+//          println("I'm finishing.");
+//        }
+      } else if (yPlace == currentRegion && yPlace <= (height-(b-t)))
+      {
+        println("************************************** THIS IS HAPPENING  " + melteds);
+        println(yPlace +" == " + currentRegion + " && " + yPlace +" < " + meltedRegion);
+        melteds++;
+        while (index < src.width)
+        {
+          c[index] = src.pixels[index+(row*src.width)];
+          index++;
+        }
+        currentRegion += divisions;
+        row++;
+      }
+      index = 0;
+      while (index < src.width)
+      {
+        //out.set(index, yPlace+src.height, c[index]);
+        out.set(index, yPlace, c[index]);
+        //println("Placing at (" + index + ", " + (row+src.height) + ")"); 
+        index++;
+      }
+      yPlace++;
+
+      index = 0;    
+      //println("Running " + millis() + ": " + yPlace);
+    }
+    out.endDraw();
+    out.save("out" + iterations + ".png");
+    iterations++;
+    image(out, 0, 0);
+    drawing = false;
+    //    selecting = true;
+    iX = 0; 
+    iY = 0; 
+    fX = 0; 
+    fY = 0;
   }
-  out.endDraw();
-  image(out, 0, -src.height);
-  noLoop();
 }
 
 void mouseClicked()
@@ -137,7 +159,8 @@ void mouseClicked()
     fY = mouseY;
     selecting = false;
     drawing = true;
-    println("(" + iX + ", " + iY + ") (" + fX + ", " + fY + ")");
+    out.clear();
+    //println("(" + iX + ", " + iY + ") (" + fX + ", " + fY + ")");
   }
 }
 

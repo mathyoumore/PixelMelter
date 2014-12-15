@@ -20,25 +20,34 @@ Given an area of pixels and a length to extend
  */
 
 PImage src;
-PGraphics out;
+PGraphics out, pure;
 
 int iX = 0, iY = 0; //Initial coords for selection draw
 int fX = 0, fY = 0; //Final coords for selection draw
 boolean selecting = false;
 boolean drawing = false;
+int meltedRegion = 0;
 
 int iterations = 0;
+
+int prevFY = 0;
+int prevIY = 0;
+String srcBase = "AWW";
+
+int threshold = 15;
+float period = 50;
 void setup()
 {
-  src = loadImage("Eleph.jpg");
+  src = loadImage(srcBase + ".jpg");
   src.loadPixels();
 
   int sw = src.width;
-  int sh = 3000; //Should change with mode
+  int sh = floor((17.0*src.width)/11.0); //Should change with mode
 
   out = createGraphics(sw, sh);
+  pure = createGraphics(sw, sh);
 
-  size(src.width,sh);
+  size(src.width, sh);
 
   rectMode(CORNERS);
 }
@@ -50,6 +59,10 @@ void draw()
 {
   background(100);
   image (src, 0, 0);
+
+  line(0, prevIY, width, prevIY);  
+  rect(0, prevFY, width, meltedRegion); 
+
   if (selecting && !drawing)
   {
     image (src, 0, 0);
@@ -73,26 +86,32 @@ void draw()
     }
     //    rect(0, 180, 538, 263);
 
-    float meltedRegion = height-t-(b-t);
-    int divisions = floor(meltedRegion /(b-t));  
+    //    meltedRegion = height-t-(b-t);
+
+    meltedRegion = height-(src.height-b);
+    println("meltedRegion: " + meltedRegion + ", " + b);
+    float divisions = ((meltedRegion-(t)) /(b-t));
+
+    println((divisions * (b-t)) + " should be " + meltedRegion);  
     println(divisions);
     //THIS IS HARD CODED AND UGLY ^^^
 
     int currentRegion = t;
     out.beginDraw();
+    pure.beginDraw();
     color[] c = new color[src.width];
     int row = 0;
     int index = 0;
     int yPlace = 0;
-    
+
     //
     int melteds = 0;
     //
     //    while (row < src.height && yPlace < height)
     while (row < src.height && yPlace < height)
     {
-      println("Still running, " + row + " < " + src.height + " and (" + t + " < " + row + " < " + b + ")");
-      println("yPlace: " + yPlace + " < " + height);
+//      println("Still running, will change pixel  "+ yPlace + " and " + row + " < " + src.height + " and (" + t + " < " + row + " < " + b + ")");
+      //      println("yPlace: " + yPlace + " < " + height);
       //println("yPlace: " + yPlace + ", currentRegion: " + currentRegion + ", " + row);
       if (row < t || row >= b) 
       {
@@ -102,14 +121,14 @@ void draw()
           index++;
         }
         row++;
-//        if (row > b)
-//        {
-//          println("I'm finishing.");
-//        }
-      } else if (yPlace == currentRegion && yPlace <= (height-(b-t)))
+        //        if (row > b)
+        //        {
+        //          println("I'm finishing.");
+        //        }
+      } else if (yPlace == currentRegion && yPlace <= meltedRegion+t)
       {
-        println("************************************** THIS IS HAPPENING  " + melteds);
-        println(yPlace +" == " + currentRegion + " && " + yPlace +" < " + meltedRegion);
+//        println("************************************** THIS IS HAPPENING  " + melteds);
+//        println(yPlace +" == " + currentRegion + " && " + yPlace +" < " + meltedRegion + " moving to " + currentRegion);
         melteds++;
         while (index < src.width)
         {
@@ -120,10 +139,29 @@ void draw()
         row++;
       }
       index = 0;
+      int randy = 0;
+      if (random(100) < 101)
+      {
+        randy = floor(-1*random(cos(yPlace/period)*random(threshold),cos(yPlace/period)*random(threshold)));
+      } else
+      {
+        randy = 0;
+      }
       while (index < src.width)
       {
-        //out.set(index, yPlace+src.height, c[index]);
-        out.set(index, yPlace, c[index]);
+
+        //PURE VERSION:
+
+        if (row > t && row < b)
+        {
+          out.set(index+randy, yPlace, c[index]);
+        } else
+        {
+          out.set(index, yPlace, c[index]);
+        }
+
+        pure.set(index, yPlace, c[index]);
+
         //println("Placing at (" + index + ", " + (row+src.height) + ")"); 
         index++;
       }
@@ -133,14 +171,19 @@ void draw()
       //println("Running " + millis() + ": " + yPlace);
     }
     out.endDraw();
-    out.save("out" + iterations + ".png");
+    pure.endDraw();
+    pure.save(srcBase + "Out" + iterations + "pure.png");
+    out.save(srcBase + "out" + iterations + ".png");
+    //noLoop();
     iterations++;
-    image(out, 0, 0);
+    //image(out, 0, 0);
     drawing = false;
     //    selecting = true;
     iX = 0; 
+    prevIY = iY;
     iY = 0; 
     fX = 0; 
+    prevFY = fY;
     fY = 0;
   }
 }

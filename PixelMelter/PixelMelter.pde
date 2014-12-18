@@ -29,11 +29,21 @@ boolean drawing = false;
 int meltedRegion = 0;
 
 int iterations = 0;
+int maxIters = 1;
 
 int prevFY = 0;
 int prevIY = 0;
-String srcBase = "AWW";
+String srcBase = "Frelephs";
 
+boolean colorDisp = false;
+int colorDispOdds = 30;
+int colorDelta = 50;
+int rRandy = 0;
+int gRandy = 0;
+int bRandy = 0;
+
+boolean distDisp = true;
+int distDispOdds = 70;
 int threshold = 15;
 float period = 50;
 void setup()
@@ -75,7 +85,10 @@ void draw()
   noFill();
   stroke(255, 0, 0);
   //THIS IS HARD CODED AND UGLY vvv
-  if (drawing)
+
+  int time = millis();
+
+  while (drawing && (iY + fY) != 0)
   {
     int t = iY;
     int b = fY;
@@ -89,11 +102,8 @@ void draw()
     //    meltedRegion = height-t-(b-t);
 
     meltedRegion = height-(src.height-b);
-    println("meltedRegion: " + meltedRegion + ", " + b);
     float divisions = ((meltedRegion-(t)) /(b-t));
 
-    println((divisions * (b-t)) + " should be " + meltedRegion);  
-    println(divisions);
     //THIS IS HARD CODED AND UGLY ^^^
 
     int currentRegion = t;
@@ -104,31 +114,29 @@ void draw()
     int index = 0;
     int yPlace = 0;
 
-    //
     int melteds = 0;
-    //
-    //    while (row < src.height && yPlace < height)
+
     while (row < src.height && yPlace < height)
     {
-//      println("Still running, will change pixel  "+ yPlace + " and " + row + " < " + src.height + " and (" + t + " < " + row + " < " + b + ")");
+      //      println("Still running, will change pixel  "+ yPlace + " and " + row + " < " + src.height + " and (" + t + " < " + row + " < " + b + ")");
       //      println("yPlace: " + yPlace + " < " + height);
-      //println("yPlace: " + yPlace + ", currentRegion: " + currentRegion + ", " + row);
+      //      println("yPlace: " + yPlace + ", currentRegion: " + currentRegion + ", " + row);
       if (row < t || row >= b) 
       {
+        rRandy = 0;
+        gRandy = 0;
+        bRandy = 0;
+
         while (index < src.width)
         {
           c[index] = src.pixels[index+(row*src.width)];
           index++;
         }
         row++;
-        //        if (row > b)
-        //        {
-        //          println("I'm finishing.");
-        //        }
       } else if (yPlace == currentRegion && yPlace <= meltedRegion+t)
       {
-//        println("************************************** THIS IS HAPPENING  " + melteds);
-//        println(yPlace +" == " + currentRegion + " && " + yPlace +" < " + meltedRegion + " moving to " + currentRegion);
+        //        println("************************************** THIS IS HAPPENING  " + melteds);
+        //        println(yPlace +" == " + currentRegion + " && " + yPlace +" < " + meltedRegion + " moving to " + currentRegion);
         melteds++;
         while (index < src.width)
         {
@@ -137,34 +145,52 @@ void draw()
         }
         currentRegion += divisions;
         row++;
+
+        if (colorDisp && (random(100) < colorDispOdds))
+        {
+          generateColorDisplacement();
+        }
       }
+
       index = 0;
-      int randy = 0;
-      if (random(100) < 101)
+      int distRandy = 0;
+      float chance = random(100);
+
+      if (distDisp)
       {
-        randy = floor(-1*random(cos(yPlace/period)*random(threshold),cos(yPlace/period)*random(threshold)));
-      } else
-      {
-        randy = 0;
+        if (chance < distDispOdds)
+        {
+          distRandy = floor(-1*random(cos(yPlace/period)*random(threshold), cos(yPlace/period)*random(threshold)));
+        }
       }
+      if (colorDisp && (row < t || row >= b))
+      {
+        if (chance < (colorDispOdds)/2)
+        {
+          generateColorDisplacement();
+        }
+      } 
+
       while (index < src.width)
       {
 
         //PURE VERSION:
+        color displacedColor = color(red(c[index])+rRandy, green(c[index])+gRandy, blue(c[index])+bRandy);
 
         if (row > t && row < b)
         {
-          out.set(index+randy, yPlace, c[index]);
+          out.set(index+distRandy, yPlace, displacedColor);
         } else
         {
-          out.set(index, yPlace, c[index]);
+          out.set(index, yPlace, displacedColor);
         }
 
-        pure.set(index, yPlace, c[index]);
+        pure.set(index, yPlace, displacedColor);
 
         //println("Placing at (" + index + ", " + (row+src.height) + ")"); 
         index++;
       }
+
       yPlace++;
 
       index = 0;    
@@ -177,6 +203,7 @@ void draw()
     //noLoop();
     iterations++;
     //image(out, 0, 0);
+
     drawing = false;
     //    selecting = true;
     iX = 0; 
@@ -185,8 +212,20 @@ void draw()
     fX = 0; 
     prevFY = fY;
     fY = 0;
+    if (iterations < maxIters)
+    {
+      iY = prevIY;
+      fY = prevFY;
+      selecting = false;
+      drawing = true;
+      println("Iteration " + iterations);
+    } else
+    {
+      println("Time taken: " + (millis() - time)/1000.0 + " seconds");
+    }
   }
 }
+
 
 void mouseClicked()
 {
@@ -204,6 +243,28 @@ void mouseClicked()
     drawing = true;
     out.clear();
     //println("(" + iX + ", " + iY + ") (" + fX + ", " + fY + ")");
+  }
+}
+
+void keyPressed()
+{
+  iY = prevIY;
+  fY = prevFY;
+  selecting = false;
+  drawing = true;
+}
+
+void generateColorDisplacement()
+{
+  if (random(100) < colorDispOdds)
+  {
+    rRandy = floor(random(-1*colorDelta, colorDelta));
+  } else if (random(100) < colorDispOdds)
+  {
+    gRandy = floor(random(-1*colorDelta, colorDelta));
+  } else if (random(100) < colorDispOdds)
+  {
+    bRandy = floor(random(-1*colorDelta, colorDelta));
   }
 }
 
